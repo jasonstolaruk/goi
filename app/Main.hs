@@ -9,7 +9,7 @@ import Data.Char (toLower)
 import Data.Function ((&))
 import Data.Text (Text)
 import Database.SQLite.Simple (Connection, FromRow, NamedParam(..), Query(..), ToRow, execute, execute_, field, fromRow, toRow, query_, queryNamed, withConnection)
-import System.Directory (copyFile, getCurrentDirectory)
+import System.Directory (copyFile)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T (appendFile, getLine, putStr, putStrLn, readFile)
 
@@ -204,7 +204,7 @@ nl :: IO ()
 nl = T.putStr . T.singleton $ '\n'
 
 mkPath :: FilePath -> IO FilePath
-mkPath (('/' :) -> xs) = (++ xs) <$> getCurrentDirectory
+mkPath xs = (++ xs) . head . lines <$> readFile "path"
 
 dbFile :: IO FilePath
 dbFile = mkPath "goi.db"
