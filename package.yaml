@@ -34,7 +34,11 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - directory
     - goi
+    - mtl
+    - sqlite-simple
+    - text
 
 tests:
   goi-test:
