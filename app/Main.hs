@@ -4,7 +4,8 @@
 module Main (main) where
 
 import Control.Arrow (second)
-import Control.Monad.State (StateT, forM_, get, liftIO, put, runStateT, unless, void)
+import Control.Monad.State
+import Control.Monad.Reader
 import Data.Char (toLower)
 import Data.Function ((&))
 import Data.Text (Text)
@@ -13,7 +14,8 @@ import System.Directory (copyFile)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T (appendFile, getLine, putStr, putStrLn, readFile)
 
-type Stack = StateT Undo IO
+type Stack = ReaderT Env (StateT Undo IO)
+type Env   = FilePath
 type Undo  = Connection -> IO ()
 
 data Record = Record { _kanji        :: Text
@@ -29,21 +31,26 @@ instance ToRow Record where
 instance FromRow Record where
   fromRow = Record <$ field @Int <*> field <*> field <*> field <*> field <*> field <*> field
 
+{- HLINT ignore "Redundant <$>" -}
 main :: IO ()
-main = void . runStateT (sequence_ fs) $ noUndo
+main = head . lines <$> readFile "path" >>= \path ->
+    void . runStateT (runReaderT (sequence_ fs) path) $ noUndo
   where
-    fs = [ liftIO initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
+    fs = [ initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
 
 noUndo :: Undo
 noUndo = const . return $ ()
 
-initialize :: IO ()
-initialize = (,) <$> dbFile <*> dbBackupFile >>= \(dbf, buf) -> do
-    copyFile dbf buf
-    withConnection dbf $ \conn -> forM_ ts $ execute_ conn . Query
+initialize :: Stack ()
+initialize = do { liftIO . uncurry copyFile =<< (,) <$> dbFile <*> dbBackupFile; withConnection' $ forM_ qs . execute_ }
   where
-    ts = [ "CREATE TABLE IF NOT EXISTS goi (id INTEGER PRIMARY KEY, kanji TEXT NOT NULL, kana TEXT NOT NULL, read_success INTEGER, read_fail INTEGER, write_success INTEGER, write_fail INTEGER)"
-         , "CREATE TABLE IF NOT EXISTS yonmoji (id INTEGER PRIMARY KEY, kanji TEXT NOT NULL, kana TEXT NOT NULL, read_success INTEGER, read_fail INTEGER, write_success INTEGER, write_fail INTEGER)" ]
+    qs = map Query [ "CREATE TABLE IF NOT EXISTS goi (id INTEGER PRIMARY KEY, kanji TEXT NOT NULL, kana TEXT NOT NULL, \
+                     \read_success INTEGER, read_fail INTEGER, write_success INTEGER, write_fail INTEGER)"
+                   , "CREATE TABLE IF NOT EXISTS yonmoji (id INTEGER PRIMARY KEY, kanji TEXT NOT NULL, kana TEXT NOT NULL, \
+                     \read_success INTEGER, read_fail INTEGER, write_success INTEGER, write_fail INTEGER)" ]
+
+withConnection' :: (Connection -> IO a) -> Stack a
+withConnection' f = liftIO . flip withConnection f =<< dbFile
 
 promptUser :: Stack ()
 promptUser = do { liftIO . T.putStr $ "> "; liftIO getChar >>= interp }
@@ -54,11 +61,11 @@ interp = \case
     ' '  -> next  . liftIO $ nl
     '\t' -> next  . liftIO $ nl
     ----------
-    'd'  -> next' . liftIO $ dumpGoi
-    'D'  -> next' . liftIO $ dumpYonmoji
+    'd'  -> next' dumpGoi
+    'D'  -> next' dumpYonmoji
     ----------
-    'l'  -> next' . liftIO $ loadGoi
-    'L'  -> next' . liftIO $ loadYonmoji
+    'l'  -> next' loadGoi
+    'L'  -> next' loadYonmoji
     ----------
     'r'  -> next' testRead
     'R'  -> next' testReadYonmoji
@@ -72,7 +79,7 @@ interp = \case
     ----------
     'u'  -> next' undo
     ----------
-    's'  -> next' . liftIO $ search
+    's'  -> next' search
     ----------
     'q'  -> void  . liftIO $ nl
     _    -> next' . liftIO . T.putStrLn $ "?"
@@ -80,22 +87,21 @@ interp = \case
     next  = (>> promptUser)
     next' = next . (liftIO nl >>)
 
-dumpHelper :: Text -> IO ()
-dumpHelper tblName = withConnectionHelper $ \conn ->
-    mapM_ (\r -> T.putStrLn $ _kanji r <> T.singleton '／' <> _kana r) =<< query_ conn (Query $ "SELECT * FROM " <> tblName)
+----------
 
-withConnectionHelper :: (Connection -> IO a) -> IO a
-withConnectionHelper f = flip withConnection f =<< dbFile
+dumpHelper :: Text -> Stack ()
+dumpHelper tblName = withConnection' (flip query_ . Query $ "SELECT * FROM " <> tblName) >>=
+    let f r = liftIO . T.putStrLn $ _kanji r <> T.singleton '／' <> _kana r in mapM_ f
 
-dumpGoi :: IO ()
+dumpGoi :: Stack ()
 dumpGoi = dumpHelper "goi"
 
-dumpYonmoji :: IO ()
+dumpYonmoji :: Stack ()
 dumpYonmoji = dumpHelper "yonmoji"
 
 ----------
 
-loadHelper :: Text -> FilePath -> IO ()
+loadHelper :: Text -> FilePath -> Stack ()
 loadHelper tblName fn = let process ts conn = mapM_ f ts
                               where
                                 f t | T.singleton '／' `T.isInfixOf` t = insert '／' t
@@ -109,12 +115,12 @@ loadHelper tblName fn = let process ts conn = mapM_ f ts
                                                             , _writeFail    = 0 }
                                                  q = Query $ "INSERT INTO " <> tblName <> " (kanji, kana, read_success, read_fail, write_success, write_fail) VALUES (?, ?, ?, ?, ?, ?)"
                                              in execute conn q r
-                        in withConnectionHelper . process . filter (not . T.null) . map T.strip . T.lines =<< T.readFile fn
+                        in withConnection' . process . filter (not . T.null) . map T.strip . T.lines =<< liftIO (T.readFile fn)
 
-loadGoi :: IO ()
+loadGoi :: Stack ()
 loadGoi = loadHelper "goi" =<< goiFile
 
-loadYonmoji :: IO ()
+loadYonmoji :: Stack ()
 loadYonmoji = loadHelper "yonmoji" =<< yonmojiFile
 
 ----------
@@ -122,8 +128,8 @@ loadYonmoji = loadHelper "yonmoji" =<< yonmojiFile
 type QueryResult = (Int, Text, Text, Int, Int)
 
 helper :: Text -> (QueryResult -> Text) -> (QueryResult -> Text) -> Text -> Text -> Stack ()
-helper queryText questionFun answerFun readOrWrite tblName = liftIO ((,) <$> dbFile <*> logFile) >>= \(dbf, lf) -> do
-    maybeUndoer <- liftIO . withConnection dbf $ \conn -> do
+helper queryText questionFun answerFun readOrWrite tblName = logFile >>= \lf -> do
+    maybeUndoer <- withConnection' $ \conn -> do
         rs <- query_ conn . Query $ queryText
         case rs of []    -> return Nothing
                    (r:_) -> do T.putStr . questionFun $ r
@@ -186,12 +192,12 @@ testWriteYonmojiRandom = helper "SELECT id, kanji, kana, write_success, write_fa
 ----------
 
 undo :: Stack ()
-undo = do { liftIO . T.putStrLn $ "Undoing."; liftIO . withConnectionHelper =<< get; put noUndo }
+undo = do { liftIO . T.putStrLn $ "Undoing."; withConnection' =<< get; put noUndo }
 
 ----------
 
-search :: IO ()
-search = withConnectionHelper $ \conn ->
+search :: Stack ()
+search = withConnection' $ \conn ->
     let f tblName col t | q  <- Query . T.concat $ [ "SELECT id, kanji, kana FROM ", tblName, " WHERE instr(", col, ", :t) > 0" ] = do
             rs <- queryNamed conn q . pure $ ":t" := t :: IO [(Int, Text, Text)]
             T.putStrLn . T.concat $ [ tblName, " - ", col, ":" ]
@@ -203,22 +209,22 @@ search = withConnectionHelper $ \conn ->
 nl :: IO ()
 nl = T.putStr . T.singleton $ '\n'
 
-mkPath :: FilePath -> IO FilePath
-mkPath xs = (++ xs) . head . lines <$> readFile "path"
+mkPath :: FilePath -> Stack FilePath
+mkPath xs = asks (++ xs)
 
-dbFile :: IO FilePath
+dbFile :: Stack FilePath
 dbFile = mkPath "goi.db"
 
-dbBackupFile :: IO FilePath
+dbBackupFile :: Stack FilePath
 dbBackupFile = mkPath "goi.db.bak"
 
-goiFile :: IO FilePath
+goiFile :: Stack FilePath
 goiFile = mkPath "goi.txt"
 
-yonmojiFile :: IO FilePath
+yonmojiFile :: Stack FilePath
 yonmojiFile = mkPath "yonmoji.txt"
 
-logFile :: IO FilePath
+logFile :: Stack FilePath
 logFile = mkPath "log.txt"
 
 split :: Char -> Text -> (Text, Text)
