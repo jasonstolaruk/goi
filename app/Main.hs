@@ -3,7 +3,7 @@
 
 module Main (main) where
 
-import Control.Arrow (second)
+import Control.Arrow (first, second)
 import Control.Monad.State
 import Control.Monad.Reader
 import Data.Char (toLower)
@@ -14,9 +14,11 @@ import System.Directory (copyFile)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T (appendFile, getLine, putStr, putStrLn, readFile)
 
-type Stack = ReaderT Env (StateT Undo IO)
-type Env   = FilePath
-type Undo  = Connection -> IO ()
+type Stack    = ReaderT Env (StateT GoiState IO)
+type Env      = FilePath
+type GoiState = (Undo, Search)
+type Undo     = Connection -> IO ()
+type Search   = Text
 
 data Record = Record { _kanji        :: Text
                      , _kana         :: Text
@@ -34,7 +36,7 @@ instance FromRow Record where
 {- HLINT ignore "Redundant <$>" -}
 main :: IO ()
 main = head . lines <$> readFile "path" >>= \path ->
-    void . runStateT (runReaderT (sequence_ fs) path) $ noUndo
+    void . runStateT (runReaderT (sequence_ fs) path) $ (noUndo, T.empty)
   where
     fs = [ initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
 
@@ -58,8 +60,8 @@ promptUser = do { liftIO . T.putStr $ "> "; liftIO getChar >>= interp }
 interp :: Char -> Stack ()
 interp = \case
     '\n' -> promptUser
-    ' '  -> next  . liftIO $ nl
-    '\t' -> next  . liftIO $ nl
+    ' '  -> next . liftIO $ nl
+    '\t' -> next . liftIO $ nl
     ----------
     'd'  -> next' dumpGoi
     'D'  -> next' dumpYonmoji
@@ -142,7 +144,7 @@ helper queryText questionFun answerFun readOrWrite tblName = logFile >>= \lf -> 
                                        T.putStrLn . T.concat $ [ showText s, " successes, ", showText f, " failures." ]
                                        T.appendFile lf . (<> T.singleton '\n') . kana $ r
                                        return . return $ undoer
-    mapM_ put maybeUndoer
+    mapM_ setUndo maybeUndoer
   where
     checkForCancel :: (Char -> IO (Maybe Undo)) -> IO (Maybe Undo)
     checkForCancel f = getChar >>= \(toLower -> c) -> if c == 'c' then nl >> T.putStrLn "Cancelling." >> pure mempty else f c
@@ -192,17 +194,38 @@ testWriteYonmojiRandom = helper "SELECT id, kanji, kana, write_success, write_fa
 ----------
 
 undo :: Stack ()
-undo = do { liftIO . T.putStrLn $ "Undoing."; withConnection' =<< get; put noUndo }
+undo = do { liftIO . T.putStrLn $ "Undoing."; withConnection' =<< getUndo; setUndo noUndo }
 
 ----------
 
 search :: Stack ()
-search = withConnection' $ \conn ->
-    let f tblName col t | q  <- Query . T.concat $ [ "SELECT id, kanji, kana FROM ", tblName, " WHERE instr(", col, ", :t) > 0" ] = do
-            rs <- queryNamed conn q . pure $ ":t" := t :: IO [(Int, Text, Text)]
-            T.putStrLn . T.concat $ [ tblName, " - ", col, ":" ]
-            forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.intercalate " / " $ [ showText i, kanjiText, kanaText ]
-    in T.putStr "| " >> T.getLine >>= \t -> unless (T.null t) . mapM_ (t &) $ [ f x y | x <- [ "goi", "yonmoji" ], y <- [ "kanji", "kana" ] ]
+search = do
+    searchText  <- getSearch
+    searchText' <- withConnection' $ \conn ->
+      let f tblName col t | q  <- Query . T.concat $ [ "SELECT id, kanji, kana FROM ", tblName, " WHERE instr(", col, ", :t) > 0" ] = do
+              rs <- queryNamed conn q . pure $ ":t" := t :: IO [(Int, Text, Text)]
+              T.putStrLn . T.concat $ [ tblName, " - ", col, ":" ]
+              forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.intercalate " / " $ [ showText i, kanjiText, kanaText ]
+          g t | T.null t = searchText | otherwise = t
+      in do T.putStr "| "
+            t <- g <$> T.getLine
+            unless (T.null t) . mapM_ (t &) $ [ f x y | x <- [ "goi", "yonmoji" ], y <- [ "kanji", "kana" ] ]
+            return t
+    setSearch searchText'
+
+----------
+
+getUndo :: Stack Undo
+getUndo = gets fst
+
+setUndo :: Undo -> Stack ()
+setUndo = modify . first . const
+
+getSearch :: Stack Search
+getSearch = gets snd
+
+setSearch :: Search -> Stack ()
+setSearch = modify . second . const
 
 ----------
 
