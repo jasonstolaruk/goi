@@ -1,9 +1,9 @@
-{-# LANGUAGE FlexibleContexts, LambdaCase, OverloadedStrings, TypeApplications, ViewPatterns #-}
+{-# LANGUAGE FlexibleContexts, LambdaCase, MonadComprehensions, OverloadedStrings, TupleSections, TypeApplications, ViewPatterns #-}
 {-# OPTIONS_GHC -Wall -Werror -Wno-type-defaults #-}
 
 module Main (main) where
 
-import Control.Arrow (first, second)
+import Control.Arrow ((***), first, second)
 import Control.Monad.State
 import Control.Monad.Reader
 import Data.Char (toLower)
@@ -32,6 +32,8 @@ instance ToRow Record where
 
 instance FromRow Record where
   fromRow = Record <$ field @Int <*> field <*> field <*> field <*> field <*> field <*> field
+
+----------
 
 {- HLINT ignore "Redundant <$>" -}
 main :: IO ()
@@ -199,17 +201,22 @@ undo = do { liftIO . T.putStrLn $ "Undoing."; withConnection' =<< getUndo; setUn
 ----------
 
 search :: Stack ()
-search = do
+search = (,) <$> goiFile <*> yonmojiFile >>= \(("goi.txt", ) *** ("yonmoji.txt", ) -> (goiPair, yonmojiPair)) -> do
     searchText  <- getSearch
     searchText' <- withConnection' $ \conn ->
-      let f tblName col t | q  <- Query . T.concat $ [ "SELECT id, kanji, kana FROM ", tblName, " WHERE instr(", col, ", :t) > 0" ] = do
-              rs <- queryNamed conn q . pure $ ":t" := t :: IO [(Int, Text, Text)]
+      let queryHelper tblName col t | q  <- Query . T.concat $ [ "SELECT id, kanji, kana FROM ", tblName, " WHERE instr(", col, ", :t) > 0" ] = do
               T.putStrLn . T.concat $ [ tblName, " - ", col, ":" ]
+              rs <- queryNamed conn q . pure $ ":t" := t :: IO [(Int, Text, Text)]
               forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.intercalate " / " $ [ showText i, kanjiText, kanaText ]
-          g t | T.null t = searchText | otherwise = t
+          fileHelper t (n, fn) = do
+              T.putStrLn $ n <> ":"
+              mapM_ T.putStrLn =<< filter (t `T.isInfixOf`) . T.lines <$> T.readFile fn
       in do T.putStr "| "
-            t <- g <$> T.getLine
-            unless (T.null t) . mapM_ (t &) $ [ f x y | x <- [ "goi", "yonmoji" ], y <- [ "kanji", "kana" ] ]
+            t <- [ f t | let f (T.strip -> t') | T.null t' = searchText | otherwise = t'
+                       , t <- T.getLine ]
+            unless (T.null t) $ do
+                mapM_ (t &) $ [ queryHelper x y | x <- [ "goi", "yonmoji" ], y <- [ "kanji", "kana" ] ]
+                mapM_ (fileHelper t) [ goiPair, yonmojiPair ]
             return t
     setSearch searchText'
 
@@ -260,6 +267,6 @@ showText = T.pack . show
 both :: (a -> b) -> (a, a) -> (b, b)
 both = join (***)
 
-mIf :: Monad m => m Bool -> m a -> m a -> m a
-mIf p (flip bool -> f) = (p >>=) . f
+((+1) *** (*5)) (0,1) -- (1,5)
+(succ &&& pred) 1 -- (2,0)
 -}
