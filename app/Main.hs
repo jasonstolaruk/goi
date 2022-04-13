@@ -3,7 +3,7 @@
 
 module Main (main) where
 
-import Control.Arrow ((***), first, second)
+import Control.Arrow ((***), (&&&), second)
 import Control.Monad.State
 import Control.Monad.Reader
 import Data.Char (toLower)
@@ -14,11 +14,17 @@ import System.Directory (copyFile)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T (appendFile, getLine, putStr, putStrLn, readFile)
 
-type Stack    = ReaderT Env (StateT GoiState IO)
-type Env      = FilePath
-type GoiState = (Undo, Search)
-type Undo     = Connection -> IO ()
-type Search   = Text
+type Stack = ReaderT Env (StateT GoiState IO)
+type Env   = FilePath
+type Undo  = Connection -> IO ()
+
+data GoiState = GoiState { _undo           :: Undo
+                         , _search         :: Search
+                         , _compoundSearch :: (KanjiSearch, KanaSearch) }
+
+type Search      = Text
+type KanjiSearch = Text
+type KanaSearch  = Text
 
 data Record = Record { _kanji        :: Text
                      , _kana         :: Text
@@ -38,7 +44,7 @@ instance FromRow Record where
 {- HLINT ignore "Redundant <$>" -}
 main :: IO ()
 main = head . lines <$> readFile "path" >>= \path ->
-    void . runStateT (runReaderT (sequence_ fs) path) $ (noUndo, T.empty)
+    void . runStateT (runReaderT (sequence_ fs) path) . GoiState noUndo T.empty . dup $ T.empty
   where
     fs = [ initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
 
@@ -84,6 +90,7 @@ interp = \case
     'u'  -> next' undo
     ----------
     's'  -> next' search
+    'S'  -> next' compoundSearch
     ----------
     'q'  -> void  . liftIO $ nl
     _    -> next' . liftIO . T.putStrLn $ "?"
@@ -208,36 +215,51 @@ search = (,) <$> goiFile <*> yonmojiFile >>= \(("goi.txt", ) *** ("yonmoji.txt",
               T.putStrLn . T.concat $ [ tblName, " - ", col, ":" ]
               rs <- queryNamed conn q . pure $ ":t" := t :: IO [(Int, Text, Text)]
               forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.intercalate " / " $ [ showText i, kanjiText, kanaText ]
-          fileHelper t (n, fn) = do
-              T.putStrLn $ n <> ":"
-              mapM_ T.putStrLn =<< filter (t `T.isInfixOf`) . T.lines <$> T.readFile fn
+          fileHelper t (n, fn) = do { T.putStrLn $ n <> ":"; mapM_ T.putStrLn =<< filter (t `T.isInfixOf`) . T.lines <$> T.readFile fn }
       in do T.putStr "| "
-            t <- [ f t | let f (T.strip -> t') | T.null t' = searchText | otherwise = t'
-                       , t <- T.getLine ]
+            t <- [ f t | let f (T.strip -> t') | T.null t' = searchText | otherwise = t', t <- T.getLine ]
             unless (T.null t) $ do
                 mapM_ (t &) $ [ queryHelper x y | x <- [ "goi", "yonmoji" ], y <- [ "kanji", "kana" ] ]
                 mapM_ (fileHelper t) [ goiPair, yonmojiPair ]
             return t
     setSearch searchText'
 
+compoundSearch :: Stack ()
+compoundSearch = getCompoundSearch >>= \(kanjiSearch, kanaSearch) -> do
+    searchPair <- withConnection' $ \conn ->
+      let queryHelper tblName (t1, t2) = do
+              T.putStrLn $ tblName <> ":"
+              rs <- queryNamed conn q [ ":kanjiSearch" := t1, ":kanaSearch" := t2 ] :: IO [(Int, Text, Text)]
+              forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.intercalate " / " $ [ showText i, kanjiText, kanaText ]
+            where
+              q = Query $ "SELECT id, kanji, kana FROM " <> tblName <> " WHERE instr(kanji, :kanjiSearch) > 0 AND instr(kana, :kanaSearch)"
+          f t = T.putStr t >> T.strip <$> T.getLine
+          g s t | T.null t = s | otherwise = t
+      in (,) <$> f "kanji: " <*> f "kana: " >>= \(g kanjiSearch *** g kanaSearch -> p) ->
+          (>> return p) . unless (uncurry (&&) . both T.null $ p) . mapM_ (p &) $ [ queryHelper x | x <- [ "goi", "yonmoji" ] ]
+    setCompoundSearch searchPair
+
 ----------
 
 getUndo :: Stack Undo
-getUndo = gets fst
+getUndo = gets _undo
 
 setUndo :: Undo -> Stack ()
-setUndo = modify . first . const
+setUndo u = modify $ \gs -> gs { _undo = u }
 
 getSearch :: Stack Search
-getSearch = gets snd
+getSearch = gets _search
 
 setSearch :: Search -> Stack ()
-setSearch = modify . second . const
+setSearch s = modify $ \gs -> gs { _search = s }
+
+getCompoundSearch :: Stack (KanjiSearch, KanaSearch)
+getCompoundSearch = gets _compoundSearch
+
+setCompoundSearch :: (KanjiSearch, KanaSearch) -> Stack ()
+setCompoundSearch s = modify $ \gs -> gs { _compoundSearch = s }
 
 ----------
-
-nl :: IO ()
-nl = T.putStr . T.singleton $ '\n'
 
 mkPath :: FilePath -> Stack FilePath
 mkPath xs = asks (++ xs)
@@ -257,16 +279,24 @@ yonmojiFile = mkPath "yonmoji.txt"
 logFile :: Stack FilePath
 logFile = mkPath "log.txt"
 
-split :: Char -> Text -> (Text, Text)
-split (T.singleton -> c) = second T.tail . T.breakOn c
+----------
+
+both :: (a -> b) -> (a, a) -> (b, b)
+both = join (***)
+
+dup :: a -> (a, a)
+dup = id &&& id
+
+nl :: IO ()
+nl = T.putStr . T.singleton $ '\n'
 
 showText :: Show a => a -> Text
 showText = T.pack . show
 
-{-
-both :: (a -> b) -> (a, a) -> (b, b)
-both = join (***)
+split :: Char -> Text -> (Text, Text)
+split (T.singleton -> c) = second T.tail . T.breakOn c
 
+{-
 ((+1) *** (*5)) (0,1) -- (1,5)
 (succ &&& pred) 1 -- (2,0)
 -}
