@@ -1,19 +1,19 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 08957375aff6e4f2f6d0e4329ea43a9c3011caad26aedcb6aafb2e6c7e57475d
+-- hash: f978b2acc2bcdbc5603966e56cb36ee29f5c25d3a38562bd6f6faa59016c0de2
 
 name:           goi
-version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/goi#readme>
-homepage:       https://github.com/githubuser/goi#readme
-bug-reports:    https://github.com/githubuser/goi/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2021 Author name here
+version:        1.0.0
+description:    Please see the README on GitHub at <https://github.com/jasonstolaruk/goi#readme>
+homepage:       https://github.com/jasonstolaruk/goi#readme
+bug-reports:    https://github.com/jasonstolaruk/goi/issues
+author:         Jason P. Stolaruk
+maintainer:     jasonstolaruk@gmail.com
+copyright:      2022 Jason P. Stolaruk
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -23,11 +23,19 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/goi
+  location: https://github.com/jasonstolaruk/goi
 
 library
   exposed-modules:
-      Lib
+      Goi.Cmds.Dump
+      Goi.Cmds.Load
+      Goi.Cmds.Search
+      Goi.Cmds.Test
+      Goi.Cmds.Undo
+      Goi.Data
+      Goi.FilePaths
+      Goi.Util.Misc
+      Goi.Util.State
   other-modules:
       Paths_goi
   hs-source-dirs:
@@ -38,11 +46,9 @@ library
 
 executable goi-exe
   main-is: Main.hs
-  other-modules:
-      Paths_goi
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
   build-depends:
       base >=4.7 && <5
     , directory
@@ -59,7 +65,7 @@ test-suite goi-test
       Paths_goi
   hs-source-dirs:
       test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
   build-depends:
       base >=4.7 && <5
     , goi
