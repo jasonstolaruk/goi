@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f978b2acc2bcdbc5603966e56cb36ee29f5c25d3a38562bd6f6faa59016c0de2
+-- hash: 43ba5d951343b8950f7c13d7ce6a347b45633bfc213f152277bbb5e3fe4e8d26
 
 name:           goi
 version:        1.0.0
@@ -34,6 +34,7 @@ library
       Goi.Cmds.Undo
       Goi.Data
       Goi.FilePaths
+      Goi.Util.Db
       Goi.Util.Misc
       Goi.Util.State
   other-modules:
