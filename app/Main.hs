@@ -14,6 +14,8 @@ import System.Directory (copyFile)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T (appendFile, getLine, putStr, putStrLn, readFile)
 
+-- TODO: Modules.
+
 type Stack = ReaderT Env (StateT GoiState IO)
 type Env   = FilePath
 type Undo  = Connection -> IO ()
@@ -65,6 +67,9 @@ withConnection' f = liftIO . flip withConnection f =<< dbFile
 promptUser :: Stack ()
 promptUser = do { liftIO . T.putStr $ "> "; liftIO getChar >>= interp }
 
+-- TODO: "Report" command.
+-- TODO: Command to aid with merging a "kanji" file and a "hiragana" file and appending to "goi.txt".
+-- TODO: Command to find rows with katakana in the "kanji" column but no katakana in the "kana" column.
 interp :: Char -> Stack ()
 interp = \case
     '\n' -> promptUser
@@ -112,6 +117,7 @@ dumpYonmoji = dumpHelper "yonmoji"
 
 ----------
 
+-- TODO: Prompt yes/no.
 loadHelper :: Text -> FilePath -> Stack ()
 loadHelper tblName fn = let process ts conn = mapM_ f ts
                               where
@@ -207,6 +213,8 @@ undo = do { liftIO . T.putStrLn $ "Undoing."; withConnection' =<< getUndo; setUn
 
 ----------
 
+-- TODO: Search commands should support backspace etc.
+
 search :: Stack ()
 search = (,) <$> goiFile <*> yonmojiFile >>= \(("goi.txt", ) *** ("yonmoji.txt", ) -> (goiPair, yonmojiPair)) -> do
     searchText  <- getSearch
@@ -244,6 +252,7 @@ compoundSearch = getCompoundSearch >>= \(kanjiSearch, kanaSearch) -> do
 getUndo :: Stack Undo
 getUndo = gets _undo
 
+-- TODO: Record update syntax improvements?
 setUndo :: Undo -> Stack ()
 setUndo u = modify $ \gs -> gs { _undo = u }
 
