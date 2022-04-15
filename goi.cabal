@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 67197b93911bb7829808376582e5d3204da4684ba466c8960af1b4a2268cb252
+-- hash: db39f79dfc2713a28ff8396c31682ff576e37b6cf1db33b8edb9452a09eaca2e
 
 name:           goi
 version:        1.0.0
@@ -35,12 +35,14 @@ library
       Goi.Data
       Goi.FilePaths
       Goi.Util.Db
+      Goi.Util.IO
       Goi.Util.Misc
       Goi.Util.State
   other-modules:
       Paths_goi
   hs-source-dirs:
       src
+  ghc-options: -Wall -Werror
   build-depends:
       base >=4.7 && <5
     , mtl

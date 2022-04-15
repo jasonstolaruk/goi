@@ -12,6 +12,7 @@ module Goi.Cmds.TestReadWrite ( testReadCmd
 import Goi.Data
 import Goi.FilePaths
 import Goi.Util.Db
+import Goi.Util.IO
 import Goi.Util.Misc
 import Goi.Util.State
 
@@ -19,7 +20,7 @@ import Data.Char (toLower)
 import Data.Text (Text)
 import Database.SQLite.Simple (Connection, Query(..), execute, query_)
 import qualified Data.Text as T
-import qualified Data.Text.IO as T (appendFile, putStr, putStrLn)
+import qualified Data.Text.IO as T (appendFile, putStrLn)
 
 ----------
 
@@ -38,10 +39,10 @@ helper queryText questionFun answerFun readOrWrite tblName = logFile >>= \lf -> 
     maybeUndoer <- withConnection' $ \conn -> do
         rs <- query_ conn . Query $ queryText
         case rs of []    -> return Nothing
-                   (r:_) -> do T.putStr . questionFun $ r
+                   (r:_) -> do putStrFlush . questionFun $ r
                                checkForCancel . const $ do
                                    T.putStrLn . answerFun $ r
-                                   T.putStr $ "Could you " <> readOrWrite <> " it? "
+                                   putStrFlush $ "Could you " <> readOrWrite <> " it? "
                                    checkForCancel $ \c -> do
                                        (s, f, undoer) <- update conn r c
                                        nl

@@ -10,18 +10,18 @@ import Goi.Cmds.Undo
 import Goi.Data
 import Goi.FilePaths
 import Goi.Util.Db
+import Goi.Util.IO
 import Goi.Util.Misc
 
 import Control.Monad.Reader
 import Control.Monad.State
 import Database.SQLite.Simple (Query(..), execute_)
 import qualified Data.Text as T
-import qualified Data.Text.IO as T (putStr, putStrLn)
+import qualified Data.Text.IO as T (putStrLn)
 import System.Directory (copyFile)
+import System.IO (BufferMode(..), hSetBuffering, stdin)
 
 ----------
-
--- TODO: import System.IO (hFlush, stdin, stdout)
 
 -- TODO: "Report" command.
 -- TODO: Command to aid with merging a "kanji" file and a "hiragana" file and appending to "goi.txt".
@@ -31,7 +31,7 @@ import System.Directory (copyFile)
 main :: IO ()
 main = f . head . lines =<< readFile "path"
   where
-    f path = let fs = [ initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
+    f path = let fs = [ liftIO . hSetBuffering stdin $ NoBuffering, initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
              in void . runStateT (runReaderT (sequence_ fs) path) . GoiState noUndo T.empty . dup $ T.empty
 
 initialize :: Stack ()
@@ -43,7 +43,7 @@ initialize = do { liftIO . uncurry copyFile =<< (,) <$> dbFile <*> dbBackupFile;
                      \read_success INTEGER, read_fail INTEGER, write_success INTEGER, write_fail INTEGER)" ]
 
 promptUser :: Stack ()
-promptUser = do { liftIO . T.putStr $ "> "; liftIO getChar >>= interp }
+promptUser = do { liftIO . putStrFlush $ "> "; liftIO getChar >>= interp }
 
 interp :: Char -> Stack ()
 interp = \case

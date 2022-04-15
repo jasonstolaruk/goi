@@ -1,10 +1,10 @@
-name:                goi
-version:             1.0.0
-github:              "jasonstolaruk/goi"
-license:             BSD3
-author:              "Jason P. Stolaruk"
-maintainer:          "jasonstolaruk@gmail.com"
-copyright:           "2022 Jason P. Stolaruk"
+name:       goi
+version:    1.0.0
+github:     "jasonstolaruk/goi"
+license:    BSD3
+author:     "Jason P. Stolaruk"
+maintainer: "jasonstolaruk@gmail.com"
+copyright:  "2022 Jason P. Stolaruk"
 
 extra-source-files:
 - README.md
@@ -17,13 +17,16 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/jasonstolaruk/goi#readme>
+description: Please see the README on GitHub at <https://github.com/jasonstolaruk/goi#readme>
 
 dependencies:
 - base >= 4.7 && < 5
 
 library:
   source-dirs: src
+  ghc-options:
+  - -Wall
+  - -Werror
   dependencies:
   - mtl
   - sqlite-simple
@@ -31,8 +34,8 @@ library:
 
 executables:
   goi:
-    main:                Main.hs
-    source-dirs:         app
+    main:        Main.hs
+    source-dirs: app
     ghc-options:
     - -threaded
     - -rtsopts
@@ -51,8 +54,8 @@ executables:
 
 tests:
   goi-test:
-    main:                Spec.hs
-    source-dirs:         test
+    main:        Spec.hs
+    source-dirs: test
     ghc-options:
     - -threaded
     - -rtsopts
