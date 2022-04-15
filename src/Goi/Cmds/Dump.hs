@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Goi.Cmds.Dump ( dumpGoiCmd
                      , dumpYonmojiCmd ) where
 

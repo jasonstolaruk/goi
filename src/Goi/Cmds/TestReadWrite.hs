@@ -1,13 +1,13 @@
-{-# LANGUAGE LambdaCase, ViewPatterns #-}
+{-# LANGUAGE LambdaCase, OverloadedStrings, ViewPatterns #-}
 
-module Goi.Cmds.Test ( testReadCmd
-                     , testReadRandomCmd
-                     , testReadYonmojiCmd
-                     , testReadYonmojiRandomCmd
-                     , testWriteCmd
-                     , testWriteRandomCmd
-                     , testWriteYonmojiCmd
-                     , testWriteYonmojiRandomCmd ) where
+module Goi.Cmds.TestReadWrite ( testReadCmd
+                              , testReadRandomCmd
+                              , testReadYonmojiCmd
+                              , testReadYonmojiRandomCmd
+                              , testWriteCmd
+                              , testWriteRandomCmd
+                              , testWriteYonmojiCmd
+                              , testWriteYonmojiRandomCmd ) where
 
 import Goi.Data
 import Goi.FilePaths

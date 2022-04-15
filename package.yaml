@@ -24,9 +24,13 @@ dependencies:
 
 library:
   source-dirs: src
+  dependencies:
+  - mtl
+  - sqlite-simple
+  - text
 
 executables:
-  goi-exe:
+  goi:
     main:                Main.hs
     source-dirs:         app
     ghc-options:

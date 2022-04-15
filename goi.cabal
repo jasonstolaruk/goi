@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 43ba5d951343b8950f7c13d7ce6a347b45633bfc213f152277bbb5e3fe4e8d26
+-- hash: 67197b93911bb7829808376582e5d3204da4684ba466c8960af1b4a2268cb252
 
 name:           goi
 version:        1.0.0
@@ -30,7 +30,7 @@ library
       Goi.Cmds.Dump
       Goi.Cmds.Load
       Goi.Cmds.Search
-      Goi.Cmds.Test
+      Goi.Cmds.TestReadWrite
       Goi.Cmds.Undo
       Goi.Data
       Goi.FilePaths
@@ -43,9 +43,12 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , mtl
+    , sqlite-simple
+    , text
   default-language: Haskell2010
 
-executable goi-exe
+executable goi
   main-is: Main.hs
   hs-source-dirs:
       app

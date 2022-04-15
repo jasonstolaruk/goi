@@ -1,4 +1,4 @@
-{-# LANGUAGE MonadComprehensions, TupleSections, ViewPatterns #-}
+{-# LANGUAGE MonadComprehensions, OverloadedStrings, TupleSections, ViewPatterns #-}
 
 module Goi.Cmds.Search ( compoundSearchCmd
                        , searchCmd ) where

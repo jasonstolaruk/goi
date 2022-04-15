@@ -1,11 +1,11 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase, OverloadedStrings #-}
 
 module Main (main) where
 
 import Goi.Cmds.Dump
 import Goi.Cmds.Load
 import Goi.Cmds.Search
-import Goi.Cmds.Test
+import Goi.Cmds.TestReadWrite
 import Goi.Cmds.Undo
 import Goi.Data
 import Goi.FilePaths
@@ -21,9 +21,12 @@ import System.Directory (copyFile)
 
 ----------
 
+-- TODO: import System.IO (hFlush, stdin, stdout)
+
 -- TODO: "Report" command.
 -- TODO: Command to aid with merging a "kanji" file and a "hiragana" file and appending to "goi.txt".
 -- TODO: Command to find rows with katakana in the "kanji" column but no katakana in the "kana" column.
+-- TODO: Color?
 
 main :: IO ()
 main = f . head . lines =<< readFile "path"

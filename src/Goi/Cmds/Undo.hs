@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Goi.Cmds.Undo ( noUndo
                      , undoCmd ) where
 

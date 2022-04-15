@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Goi.Cmds.Load ( loadGoiCmd
                      , loadYonmojiCmd ) where
 
