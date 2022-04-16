@@ -1,8 +1,8 @@
-module Goi.Util.State ( getCompoundSearch
-                      , getSearch
+module Goi.Util.State ( getCompoundSearchHist
+                      , getSearchHist
                       , getUndo
-                      , setCompoundSearch
-                      , setSearch
+                      , setCompoundSearchHist
+                      , setSearchHist
                       , setUndo ) where
 
 import Goi.Data
@@ -20,16 +20,16 @@ setUndo u = modify $ \gs -> gs { _undo = u }
 
 ----------
 
-getSearch :: Stack Search
-getSearch = gets _search
+getSearchHist :: Stack SearchHist
+getSearchHist = gets _search
 
-setSearch :: Search -> Stack ()
-setSearch s = modify $ \gs -> gs { _search = s }
+setSearchHist :: SearchHist -> Stack ()
+setSearchHist s = modify $ \gs -> gs { _search = s }
 
 ----------
 
-getCompoundSearch :: Stack (KanjiSearch, KanaSearch)
-getCompoundSearch = gets _compoundSearch
+getCompoundSearchHist :: Stack (KanjiSearchHist, KanaSearchHist)
+getCompoundSearchHist = gets _compoundSearch
 
-setCompoundSearch :: (KanjiSearch, KanaSearch) -> Stack ()
-setCompoundSearch s = modify $ \gs -> gs { _compoundSearch = s }
+setCompoundSearchHist :: (KanjiSearchHist, KanaSearchHist) -> Stack ()
+setCompoundSearchHist s = modify $ \gs -> gs { _compoundSearch = s }

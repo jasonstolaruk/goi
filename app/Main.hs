@@ -20,46 +20,54 @@ import Control.Monad.State (StateT, runStateT)
 import Database.SQLite.Simple (Query(..), execute_)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T (putStrLn)
+import System.Console.Haskeline (InputT, Settings, defaultSettings, runInputT)
 import System.Directory (copyFile)
 import System.IO (BufferMode(..), hSetBuffering, stdin)
 
 ----------
 
 -- TODO: "Report" command.
+-- TODO: Color.
 -- TODO: Command to aid with merging a "kanji" file and a "hiragana" file and appending to "goi.txt".
 -- TODO: Command to find rows with katakana in the "kanji" column but no katakana in the "kana" column.
--- TODO: Color?
 
 main :: IO ()
 main = do path :: Env <- head . lines <$> readFile "path"
-          void . getIO $ path
+          void . runInputTToGetIO $ path
   where
-    getIO :: Env -> IO ((), GoiState)
-    getIO env = let initState = GoiState noUndo T.empty . dup $ T.empty
-                in runStateT' (getStateT env) initState
-
-    runStateT' :: StateT GoiState IO () -> GoiState -> IO ((), GoiState)
-    runStateT' = runStateT
-
-    getStateT :: Env -> StateT GoiState IO ()
-    getStateT = runReaderT' f
+    -- Helper functions with explicit type signatures to illustrate how the monad transformer stack is unraveled:
+    runInputTToGetIO :: Env -> IO ((), GoiState)
+    runInputTToGetIO = runInputT' defaultSettings . runStateTToGetInputT
       where
-        f :: ReaderT Env (StateT GoiState IO) () -- Stack ()
-        f = sequence_ [ liftIO . hSetBuffering stdin $ NoBuffering, initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
+        runInputT' :: Settings IO -> InputT IO ((), GoiState) -> IO ((), GoiState)
+        runInputT' = runInputT
 
-    runReaderT' :: ReaderT Env (StateT GoiState IO) () -> Env -> StateT GoiState IO ()
-    runReaderT' = runReaderT
+    runStateTToGetInputT :: Env -> InputT IO ((), GoiState)
+    runStateTToGetInputT env = let initState = GoiState noUndo T.empty . dup $ T.empty
+                               in runStateT' (runReaderTToGetStateT env) initState
+      where
+        runStateT' :: StateT GoiState (InputT IO) () -> GoiState -> InputT IO ((), GoiState)
+        runStateT' = runStateT
 
-initialize :: Stack ()
-initialize = do { liftIO . uncurry copyFile =<< (,) <$> dbFile <*> dbBackupFile; withConnection' $ forM_ qs . execute_ }
+    runReaderTToGetStateT :: Env -> StateT GoiState (InputT IO) ()
+    runReaderTToGetStateT = runReaderT' f
+      where
+        runReaderT' :: ReaderT Env (StateT GoiState (InputT IO)) () -> Env -> StateT GoiState (InputT IO) ()
+        runReaderT' = runReaderT
+        f :: ReaderT Env (StateT GoiState (InputT IO)) () -- Stack ()
+        f = go
+
+go :: Stack ()
+go = sequence_ [ liftIO . hSetBuffering stdin $ NoBuffering {- TODO: To be deleted. -}, initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
   where
-    qs = map Query [ "CREATE TABLE IF NOT EXISTS goi (id INTEGER PRIMARY KEY, kanji TEXT NOT NULL, kana TEXT NOT NULL, \
-                     \read_success INTEGER, read_fail INTEGER, write_success INTEGER, write_fail INTEGER)"
-                   , "CREATE TABLE IF NOT EXISTS yonmoji (id INTEGER PRIMARY KEY, kanji TEXT NOT NULL, kana TEXT NOT NULL, \
-                     \read_success INTEGER, read_fail INTEGER, write_success INTEGER, write_fail INTEGER)" ]
+    initialize = do { liftIO . uncurry copyFile =<< (,) <$> dbFile <*> dbBackupFile; withConnection' $ forM_ qs . execute_ }
+    qs         = map Query [ "CREATE TABLE IF NOT EXISTS goi (id INTEGER PRIMARY KEY, kanji TEXT NOT NULL, kana TEXT NOT NULL, \
+                             \read_success INTEGER, read_fail INTEGER, write_success INTEGER, write_fail INTEGER)"
+                           , "CREATE TABLE IF NOT EXISTS yonmoji (id INTEGER PRIMARY KEY, kanji TEXT NOT NULL, kana TEXT NOT NULL, \
+                             \read_success INTEGER, read_fail INTEGER, write_success INTEGER, write_fail INTEGER)" ]
 
 promptUser :: Stack ()
-promptUser = do { liftIO . putStrFlush $ "> "; liftIO getChar >>= interp }
+promptUser = do { liftIO . putStrFlush $ "> "; interp =<< liftIO getChar }
 
 interp :: Char -> Stack ()
 interp = \case
@@ -91,12 +99,5 @@ interp = \case
     'q'  -> void  . liftIO $ nl
     _    -> next' . liftIO . T.putStrLn $ "?"
   where
-    next  = (>> promptUser)
+    next  = (>> promptUser) -- TODO: Make a helper function for "(>> f)"?
     next' = next . (liftIO nl >>)
-
-----------
-
-{-
-((+1) *** (*5)) (0,1) -- (1,5)
-(succ &&& pred) 1 -- (2,0)
--}

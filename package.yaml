@@ -28,9 +28,11 @@ library:
   - -Wall
   - -Werror
   dependencies:
+  - haskeline
   - mtl
   - sqlite-simple
   - text
+  - transformers
 
 executables:
   goi:
@@ -45,6 +47,7 @@ executables:
     dependencies:
     - directory
     - goi
+    - haskeline
     - mtl
     - sqlite-simple
     - text

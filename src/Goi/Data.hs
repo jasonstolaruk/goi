@@ -2,10 +2,10 @@
 
 module Goi.Data ( Env
                 , GoiState(..)
-                , KanaSearch
-                , KanjiSearch
+                , KanaSearchHist
+                , KanjiSearchHist
                 , Record(..)
-                , Search
+                , SearchHist
                 , Stack
                 , Undo ) where
 
@@ -13,21 +13,22 @@ import Control.Monad.Reader (ReaderT)
 import Control.Monad.State (StateT)
 import Data.Text (Text)
 import Database.SQLite.Simple (Connection, FromRow, ToRow, field, fromRow, toRow)
+import System.Console.Haskeline (InputT)
 
 ----------
 
-type Stack = ReaderT Env (StateT GoiState IO)
+type Stack = ReaderT Env (StateT GoiState (InputT IO))
 
 type Env = FilePath
 
 data GoiState = GoiState { _undo           :: Undo
-                         , _search         :: Search
-                         , _compoundSearch :: (KanjiSearch, KanaSearch) }
+                         , _search         :: SearchHist
+                         , _compoundSearch :: (KanjiSearchHist, KanaSearchHist) }
 
-type Undo        = Connection -> IO ()
-type Search      = Text
-type KanjiSearch = Text
-type KanaSearch  = Text
+type Undo            = Connection -> IO ()
+type SearchHist      = Text
+type KanjiSearchHist = Text
+type KanaSearchHist  = Text
 
 ----------
 
