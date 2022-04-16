@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase, OverloadedStrings #-}
+{-# LANGUAGE LambdaCase, OverloadedStrings, ScopedTypeVariables #-}
 
 module Main (main) where
 
@@ -13,8 +13,10 @@ import Goi.Util.Db
 import Goi.Util.IO
 import Goi.Util.Misc
 
-import Control.Monad.Reader
-import Control.Monad.State
+import Control.Monad (forM_, void)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Reader (ReaderT, runReaderT)
+import Control.Monad.State (StateT, runStateT)
 import Database.SQLite.Simple (Query(..), execute_)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T (putStrLn)
@@ -29,10 +31,24 @@ import System.IO (BufferMode(..), hSetBuffering, stdin)
 -- TODO: Color?
 
 main :: IO ()
-main = f . head . lines =<< readFile "path"
+main = do path :: Env <- head . lines <$> readFile "path"
+          void . getIO $ path
   where
-    f path = let fs = [ liftIO . hSetBuffering stdin $ NoBuffering, initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
-             in void . runStateT (runReaderT (sequence_ fs) path) . GoiState noUndo T.empty . dup $ T.empty
+    getIO :: Env -> IO ((), GoiState)
+    getIO env = let initState = GoiState noUndo T.empty . dup $ T.empty
+                in runStateT' (getStateT env) initState
+
+    runStateT' :: StateT GoiState IO () -> GoiState -> IO ((), GoiState)
+    runStateT' = runStateT
+
+    getStateT :: Env -> StateT GoiState IO ()
+    getStateT = runReaderT' f
+      where
+        f :: ReaderT Env (StateT GoiState IO) () -- Stack ()
+        f = sequence_ [ liftIO . hSetBuffering stdin $ NoBuffering, initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
+
+    runReaderT' :: ReaderT Env (StateT GoiState IO) () -> Env -> StateT GoiState IO ()
+    runReaderT' = runReaderT
 
 initialize :: Stack ()
 initialize = do { liftIO . uncurry copyFile =<< (,) <$> dbFile <*> dbBackupFile; withConnection' $ forM_ qs . execute_ }

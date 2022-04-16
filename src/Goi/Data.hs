@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeApplications #-}
 
-module Goi.Data ( GoiState(..)
+module Goi.Data ( Env
+                , GoiState(..)
                 , KanaSearch
                 , KanjiSearch
                 , Record(..)
