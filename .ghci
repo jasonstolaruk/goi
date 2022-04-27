@@ -1,4 +1,5 @@
 :set prompt "λ> "
 :set prompt-cont "λ| "
 :set -XOverloadedStrings -XFlexibleContexts
+:set -fno-warn-type-defaults
 :show language
