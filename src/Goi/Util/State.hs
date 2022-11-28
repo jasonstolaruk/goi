@@ -11,10 +11,11 @@ import Control.Monad.State (gets, modify)
 
 ----------
 
+-- TODO: Try using RecordDotSyntax?
+
 getUndo :: Stack Undo
 getUndo = gets _undo
 
--- TODO: Record update syntax improvements?
 setUndo :: Undo -> Stack ()
 setUndo u = modify $ \gs -> gs { _undo = u }
 

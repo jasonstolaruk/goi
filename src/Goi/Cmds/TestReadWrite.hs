@@ -16,6 +16,7 @@ import Goi.Util.IO
 import Goi.Util.Misc
 import Goi.Util.State
 
+import Data.Bool (bool)
 import Data.Char (toLower)
 import Data.Text (Text)
 import Database.SQLite.Simple (Connection, Query(..), execute, query_)
@@ -52,7 +53,7 @@ helper queryText questionFun answerFun readOrWrite tblName = logFile >>= \lf -> 
     mapM_ setUndo maybeUndoer
   where
     checkForCancel :: (Char -> IO (Maybe Undo)) -> IO (Maybe Undo)
-    checkForCancel f = getChar >>= \(toLower -> c) -> if c == 'c' then nl >> T.putStrLn "Cancelling." >> pure mempty else f c
+    checkForCancel f = getChar >>= \(toLower -> c) -> bool (f c) (nl >> T.putStrLn "Cancelling." >> return mempty) $ c == 'c'
     update :: Connection -> QueryResult -> Char -> IO (Int, Int, Undo)
     update conn (i, _, _, s, f) = \case
       'y' | s' <- succ s

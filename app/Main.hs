@@ -60,14 +60,14 @@ main = do path :: Env <- head . lines <$> readFile "path"
 go :: Stack ()
 go = sequence_ [ liftIO . hSetBuffering stdin $ NoBuffering {- TODO: To be deleted. -}, initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
   where
-    initialize = do { liftIO . uncurry copyFile =<< (,) <$> dbFile <*> dbBackupFile; withConnection' $ forM_ qs . execute_ }
+    initialize = do liftIO . uncurry copyFile =<< (,) <$> dbFile <*> dbBackupFile; withConnection' $ forM_ qs . execute_
     qs         = map Query [ "CREATE TABLE IF NOT EXISTS goi (id INTEGER PRIMARY KEY, kanji TEXT NOT NULL, kana TEXT NOT NULL, \
                              \read_success INTEGER, read_fail INTEGER, write_success INTEGER, write_fail INTEGER)"
                            , "CREATE TABLE IF NOT EXISTS yonmoji (id INTEGER PRIMARY KEY, kanji TEXT NOT NULL, kana TEXT NOT NULL, \
                              \read_success INTEGER, read_fail INTEGER, write_success INTEGER, write_fail INTEGER)" ]
 
 promptUser :: Stack ()
-promptUser = do { liftIO . putStrFlush $ "> "; interp =<< liftIO getChar }
+promptUser = do liftIO . putStrFlush $ "> "; interp =<< liftIO getChar
 
 interp :: Char -> Stack ()
 interp = \case

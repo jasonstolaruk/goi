@@ -28,6 +28,7 @@ library:
   - -Wall
   - -Werror
   dependencies:
+  - containers
   - haskeline
   - mtl
   - sqlite-simple

@@ -14,6 +14,7 @@ import Goi.Util.State
 import Control.Arrow ((***))
 import Control.Monad (forM_, unless)
 import Data.Function ((&))
+import Data.List (singleton)
 import Data.Text (Text)
 import Database.SQLite.Simple (NamedParam(..), Query(..), queryNamed)
 import qualified Data.Text as T
@@ -29,9 +30,9 @@ searchCmd = (,) <$> goiFile <*> yonmojiFile >>= \(("goi.txt", ) *** ("yonmoji.tx
         withConnection' $ \conn ->
           let queryHelper tblName col t | q  <- Query . T.concat $ [ "SELECT id, kanji, kana FROM ", tblName, " WHERE instr(", col, ", :t) > 0" ] = do
                   T.putStrLn . T.concat $ [ tblName, " - ", col, ":" ]
-                  rs <- queryNamed conn q . pure $ ":t" := t :: IO [(Int, Text, Text)]
+                  rs <- queryNamed conn q . singleton $ ":t" := t :: IO [(Int, Text, Text)]
                   forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.intercalate " / " $ [ showText i, kanjiText, kanaText ]
-              fileHelper t (n, fn) = do { T.putStrLn $ n <> ":"; mapM_ T.putStrLn . filter (t `T.isInfixOf`) . T.lines =<< T.readFile fn }
+              fileHelper t (n, fn) = do T.putStrLn $ n <> ":"; mapM_ T.putStrLn . filter (t `T.isInfixOf`) . T.lines =<< T.readFile fn
           in (>> return search) . unless (T.null search) $ do
               mapM_ (search &) $ [ queryHelper x y | x <- [ "goi", "yonmoji" ], y <- [ "kanji", "kana" ] ]
               mapM_ (fileHelper search) [ goiPair, yonmojiPair ]

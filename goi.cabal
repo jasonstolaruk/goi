@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 803de94b36575a3832e4776f9936b7378be80785d1df566ddfbf66a8620ef766
+-- hash: 7ee46d3ebd3b4a7d8fd0cc2eebb1872976e301dda9cb6e114a99142dd6f26de1
 
 name:           goi
 version:        1.0.0
@@ -46,6 +46,7 @@ library
   ghc-options: -Wall -Werror
   build-depends:
       base >=4.7 && <5
+    , containers
     , haskeline
     , mtl
     , sqlite-simple
