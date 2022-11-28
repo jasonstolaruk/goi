@@ -94,7 +94,6 @@ interp = \case
     'u'  -> next' undoCmd
     ----------
     's'  -> next' searchCmd
-    'S'  -> next' compoundSearchCmd
     ----------
     'q'  -> void  . liftIO $ nl
     _    -> next' . liftIO . T.putStrLn $ "?"
