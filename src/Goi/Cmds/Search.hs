@@ -11,7 +11,6 @@ import Goi.Util.State
 
 import Control.Arrow ((***))
 import Control.Monad (forM_, unless)
-import Data.Function ((&))
 import Data.List (singleton)
 import Data.Text (Text)
 import Database.SQLite.Simple (NamedParam(..), Query(..), queryNamed)
@@ -26,14 +25,14 @@ searchCmd = (,) <$> goiFile <*> yonmojiFile >>= \(("goi.txt", ) *** ("yonmoji.tx
     searchHist' <- do
         search <- [ f t | let f t' | T.null t' = searchHist | otherwise = t', t <- getInputLine' "| " ]
         withConnection' $ \conn ->
-          let queryHelper tblName col t | q  <- Query . T.concat $ [ "SELECT id, kanji, kana FROM ", tblName, " WHERE instr(", col, ", :t) > 0" ] = do
-                  T.putStrLn . T.concat $ [ tblName, " - ", col, ":" ]
+          let queryHelper tblName t | q <- Query $ "SELECT id, kanji, kana FROM " <> tblName <> " WHERE instr(kanji, :t) > 0 OR instr(kana, :t) > 0" = do
+                  T.putStrLn $ tblName <> ":"
                   rs <- queryNamed conn q . singleton $ ":t" := t :: IO [(Int, Text, Text)]
                   forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.intercalate " / " $ [ showText i, colorize t kanjiText, colorize t kanaText ]
-              fileHelper t (n, fn) = do T.putStrLn $ n <> ":"; mapM_ (T.putStrLn . colorize t) . filter (t `T.isInfixOf`) . T.lines =<< T.readFile fn
-          in (>> return search) . unless (T.null search) $ do
-              mapM_ (search &) $ [ queryHelper x y | x <- [ "goi", "yonmoji" ], y <- [ "kanji", "kana" ] ]
-              mapM_ (fileHelper search) [ goiPair, yonmojiPair ]
+              fileHelper t (n, fn) = do T.putStrLn $ n <> ":"
+                                        mapM_ (T.putStrLn . colorize t) . filter (t `T.isInfixOf`) . T.lines =<< T.readFile fn
+          in (>> return search) . unless (T.null search) $ do mapM_ (`queryHelper` search) [ "goi", "yonmoji" ]
+                                                              mapM_ (fileHelper search) [ goiPair, yonmojiPair ]
     setSearchHist searchHist'
 
 colorize :: Text -> Text -> Text
