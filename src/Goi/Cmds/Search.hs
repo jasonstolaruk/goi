@@ -37,4 +37,4 @@ searchCmd = (,) <$> goiFile <*> yonmojiFile >>= \(("goi.txt", ) *** ("yonmoji.tx
     setSearchHist searchHist'
 
 colorize :: Text -> Text -> Text
-colorize t = T.replace t $ "\ESC[44m" <> t <> "\ESC[0m" -- TODO: Append "\STX" if using Haskeline for output.
+colorize t = (<> "\ESC[K") . T.replace t ("\ESC[44m" <> t <> "\ESC[0m") -- TODO: Append "\STX" if using Haskeline for output. See "https://github.com/judah/haskeline/wiki/ControlSequencesInPrompt".
