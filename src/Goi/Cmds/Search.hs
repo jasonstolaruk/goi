@@ -29,9 +29,12 @@ searchCmd = (,) <$> goiFile <*> yonmojiFile >>= \(("goi.txt", ) *** ("yonmoji.tx
           let queryHelper tblName col t | q  <- Query . T.concat $ [ "SELECT id, kanji, kana FROM ", tblName, " WHERE instr(", col, ", :t) > 0" ] = do
                   T.putStrLn . T.concat $ [ tblName, " - ", col, ":" ]
                   rs <- queryNamed conn q . singleton $ ":t" := t :: IO [(Int, Text, Text)]
-                  forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.intercalate " / " $ [ showText i, kanjiText, kanaText ]
-              fileHelper t (n, fn) = do T.putStrLn $ n <> ":"; mapM_ T.putStrLn . filter (t `T.isInfixOf`) . T.lines =<< T.readFile fn
+                  forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.intercalate " / " $ [ showText i, colorize t kanjiText, colorize t kanaText ]
+              fileHelper t (n, fn) = do T.putStrLn $ n <> ":"; mapM_ (T.putStrLn . colorize t) . filter (t `T.isInfixOf`) . T.lines =<< T.readFile fn
           in (>> return search) . unless (T.null search) $ do
               mapM_ (search &) $ [ queryHelper x y | x <- [ "goi", "yonmoji" ], y <- [ "kanji", "kana" ] ]
               mapM_ (fileHelper search) [ goiPair, yonmojiPair ]
     setSearchHist searchHist'
+
+colorize :: Text -> Text -> Text
+colorize t = T.replace t $ "\ESC[44m" <> t <> "\ESC[0m" -- TODO: Append "\STX" if using Haskeline for output.

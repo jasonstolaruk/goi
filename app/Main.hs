@@ -27,7 +27,6 @@ import System.IO (BufferMode(..), hSetBuffering, stdin)
 ----------
 
 -- TODO: "Report" command.
--- TODO: Color.
 -- TODO: Command to aid with merging a "kanji" file and a "hiragana" file and appending to "goi.txt".
 -- TODO: Command to find rows with katakana in the "kanji" column but no katakana in the "kana" column.
 
