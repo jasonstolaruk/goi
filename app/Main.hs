@@ -98,5 +98,5 @@ interp = \case
     'q'  -> void  . liftIO $ nl
     _    -> next' . liftIO . T.putStrLn $ "?"
   where
-    next  = (>> promptUser) -- TODO: Make a helper function for "(>> f)"?
+    next  = (>> promptUser)
     next' = next . (liftIO nl >>)
