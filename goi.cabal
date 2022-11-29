@@ -34,6 +34,7 @@ library
       Goi.Cmds.Undo
       Goi.Data
       Goi.FilePaths
+      Goi.Util.Color
       Goi.Util.Db
       Goi.Util.Haskeline
       Goi.Util.IO

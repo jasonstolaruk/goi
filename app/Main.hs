@@ -9,6 +9,7 @@ import Goi.Cmds.TestReadWrite
 import Goi.Cmds.Undo
 import Goi.Data
 import Goi.FilePaths
+import Goi.Util.Color
 import Goi.Util.Db
 import Goi.Util.IO
 import Goi.Util.Misc
@@ -66,7 +67,7 @@ go = sequence_ [ liftIO . hSetBuffering stdin $ NoBuffering {- TODO: To be delet
                              \read_success INTEGER, read_fail INTEGER, write_success INTEGER, write_fail INTEGER)" ]
 
 promptUser :: Stack ()
-promptUser = do liftIO . putStrFlush $ "> "; interp =<< liftIO getChar
+promptUser = do liftIO . putStrFlush $ colorize bgMagenta ">" <> " "; interp =<< liftIO getChar
 
 interp :: Char -> Stack ()
 interp = \case

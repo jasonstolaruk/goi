@@ -4,6 +4,7 @@ module Goi.Cmds.Search (searchCmd) where
 
 import Goi.Data
 import Goi.FilePaths
+import Goi.Util.Color
 import Goi.Util.Db
 import Goi.Util.Haskeline
 import Goi.Util.Misc
@@ -26,15 +27,11 @@ searchCmd = (,) <$> goiFile <*> yonmojiFile >>= \(("goi.txt", ) *** ("yonmoji.tx
         search <- [ f t | let f t' | T.null t' = searchHist | otherwise = t', t <- getInputLine' "| " ]
         withConnection' $ \conn ->
           let queryHelper tblName t | q <- Query $ "SELECT id, kanji, kana FROM " <> tblName <> " WHERE instr(kanji, :t) > 0 OR instr(kana, :t) > 0" = do
-                  T.putStrLn $ tblName <> ":" -- TODO: Color.
+                  T.putStrLn . colorize fgGreen $ tblName <> ":"
                   rs <- queryNamed conn q . singleton $ ":t" := t :: IO [(Int, Text, Text)]
-                  forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.intercalate " / " $ [ showText i, colorize t kanjiText, colorize t kanaText ]
-              fileHelper t (n, fn) = do T.putStrLn $ n <> ":" -- TODO: Color.
-                                        mapM_ (T.putStrLn . colorize t) . filter (t `T.isInfixOf`) . T.lines =<< T.readFile fn
+                  forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.intercalate " / " $ [ showText i, colorQuote bgBlue t kanjiText, colorQuote bgBlue t kanaText ]
+              fileHelper t (n, fn) = do T.putStrLn . colorize fgGreen $ n <> ":"
+                                        mapM_ (T.putStrLn . colorQuote bgBlue t) . filter (t `T.isInfixOf`) . T.lines =<< T.readFile fn
           in (>> return search) . unless (T.null search) $ do mapM_ (`queryHelper` search) [ "goi", "yonmoji" ]
                                                               mapM_ (fileHelper search) [ goiPair, yonmojiPair ]
     setSearchHist searchHist'
-
--- TQDO: "Color" module.
-colorize :: Text -> Text -> Text
-colorize t = (<> "\ESC[K") . T.replace t ("\ESC[44m" <> t <> "\ESC[0m") -- TODO: Append "\STX" if using Haskeline for output. See "https://github.com/judah/haskeline/wiki/ControlSequencesInPrompt".
