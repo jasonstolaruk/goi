@@ -78,8 +78,8 @@ interp = \case
     'd'  -> next' dumpGoiCmd
     'D'  -> next' dumpYonmojiCmd
     ----------
-    'l'  -> next' loadGoiCmd
-    'L'  -> next' loadYonmojiCmd
+    '('  -> next' loadGoiCmd
+    ')'  -> next' loadYonmojiCmd
     ----------
     'r'  -> next' testReadCmd
     'R'  -> next' testReadYonmojiCmd

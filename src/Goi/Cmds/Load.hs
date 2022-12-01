@@ -22,7 +22,6 @@ loadGoiCmd = loadHelper "goi" =<< goiFile
 loadYonmojiCmd :: Stack ()
 loadYonmojiCmd = loadHelper "yonmoji" =<< yonmojiFile
 
--- TODO: Prompt yes/no.
 loadHelper :: Text -> FilePath -> Stack ()
 loadHelper tblName fn = let process ts conn = mapM_ f ts
                               where
