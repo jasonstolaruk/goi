@@ -29,7 +29,7 @@ searchCmd = (,) <$> goiFile <*> yonmojiFile >>= \(("goi.txt", ) *** ("yonmoji.tx
           let queryHelper tblName t | q <- Query $ "SELECT id, kanji, kana FROM " <> tblName <> " WHERE instr(kanji, :t) > 0 OR instr(kana, :t) > 0" = do
                   T.putStrLn . colorize fgGreen $ tblName <> ":"
                   rs <- queryNamed conn q . singleton $ ":t" := t :: IO [(Int, Text, Text)]
-                  forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.intercalate " / " $ [ showText i, colorQuote bgBlue t kanjiText, colorQuote bgBlue t kanaText ]
+                  forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.concat $ [ showText i, " / ", colorQuote bgBlue t kanjiText, colorize fgMagenta " / ", colorQuote bgBlue t kanaText ]
               fileHelper t (n, fn) = do T.putStrLn . colorize fgGreen $ n <> ":"
                                         mapM_ (T.putStrLn . colorQuote bgBlue t) . filter (t `T.isInfixOf`) . T.lines =<< T.readFile fn
           in (>> return search) . unless (T.null search) $ do mapM_ (`queryHelper` search) [ "goi", "yonmoji" ]
