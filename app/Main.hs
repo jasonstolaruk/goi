@@ -20,7 +20,7 @@ import Control.Monad.Reader (ReaderT, runReaderT)
 import Control.Monad.State (StateT, runStateT)
 import Database.SQLite.Simple (Query(..), execute_)
 import qualified Data.Text as T
-import qualified Data.Text.IO as T (putStrLn)
+import qualified Data.Text.IO as T (putStr, putStrLn)
 import System.Console.Haskeline (InputT, Settings, defaultSettings, runInputT)
 import System.Directory (copyFile)
 import System.IO (BufferMode(..), hSetBuffering, stdin)
@@ -74,6 +74,7 @@ interp = \case
     '\n' -> promptUser
     ' '  -> next . liftIO $ nl
     '\t' -> next . liftIO $ nl
+    'c'  -> next . liftIO . T.putStr $ "\ESCc"
     ----------
     'd'  -> next' dumpGoiCmd
     'D'  -> next' dumpYonmojiCmd
