@@ -32,8 +32,6 @@ colorQuote c t = (<> erase) . T.replace t (c <> t <> reset)
 
 ----------
 
--- TODO: Append "\STX" if using Haskeline for output. See "https://github.com/judah/haskeline/wiki/ControlSequencesInPrompt".
-
 bgBlack :: Text
 bgBlack = "\ESC[40m"
 

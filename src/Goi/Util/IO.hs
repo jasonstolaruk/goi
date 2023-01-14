@@ -10,6 +10,5 @@ import System.IO (hFlush, stdout)
 nl :: IO ()
 nl = putChar '\n'
 
--- TODO: Delete after adopting Haskeline.
 putStrFlush :: Text -> IO ()
 putStrFlush t = T.putStr t >> hFlush stdout

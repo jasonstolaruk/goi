@@ -58,7 +58,7 @@ main = do path :: Env <- head . lines <$> readFile "path"
         f = go
 
 go :: Stack ()
-go = sequence_ [ liftIO . hSetBuffering stdin $ NoBuffering {- TODO: To be deleted. -}, initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
+go = sequence_ [ liftIO . hSetBuffering stdin $ NoBuffering, initialize, liftIO . T.putStrLn $ "Welcome to goi.", promptUser ]
   where
     initialize = do liftIO . uncurry copyFile =<< (,) <$> dbFile <*> dbBackupFile; withConnection' $ forM_ qs . execute_
     qs         = map Query [ "CREATE TABLE IF NOT EXISTS goi (id INTEGER PRIMARY KEY, kanji TEXT NOT NULL, kana TEXT NOT NULL, \
