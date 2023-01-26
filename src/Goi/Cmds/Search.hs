@@ -12,6 +12,7 @@ import Goi.Util.State
 
 import Control.Arrow ((***))
 import Control.Monad (forM_, unless)
+import Data.Char (ord)
 import Data.List (singleton)
 import Data.Text (Text)
 import Database.SQLite.Simple (NamedParam(..), Query(..), queryNamed)
@@ -31,7 +32,12 @@ searchCmd = (,) <$> goiFile <*> yonmojiFile >>= \(("goi.txt", ) *** ("yonmoji.tx
                   rs <- queryNamed conn q . singleton $ ":t" := t :: IO [(Int, Text, Text)]
                   forM_ rs $ \(i, kanjiText, kanaText) -> T.putStrLn . T.concat $ [ showText i, " / ", colorQuote bgBlue t kanjiText, colorize fgMagenta " / ", colorQuote bgBlue t kanaText ]
               fileHelper t (n, fn) = do T.putStrLn . colorize fgGreen $ n <> ":"
-                                        mapM_ (T.putStrLn . colorQuote bgBlue t) . filter (t `T.isInfixOf`) . T.lines =<< T.readFile fn
+                                        mapM_ (T.putStrLn . colorDivider . colorQuote bgBlue t) . filter (t `T.isInfixOf`) . T.lines =<< T.readFile fn
           in (>> return search) . unless (T.null search) $ do mapM_ (`queryHelper` search) [ "goi", "yonmoji" ]
                                                               mapM_ (fileHelper search) [ goiPair, yonmojiPair ]
     setSearchHist searchHist'
+  where
+    colorDivider t | "／" `T.isInfixOf` t = colorQuote fgMagenta "／" t
+                   | [_, x] <- T.splitOn "　" t, not . hasKanji $ x = colorQuote bgYellow "　" t
+                   | otherwise = t
+    hasKanji = T.any $ ((&&) `on'` ((>= 0x4E00), (<= 0x9FFF))) . ord
