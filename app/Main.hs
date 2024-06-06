@@ -27,9 +27,6 @@ import System.IO (BufferMode(..), hSetBuffering, stdin)
 
 ----------
 
--- TODO: "Report" command.
--- TODO: Command to find rows with katakana in the "kanji" column but no katakana in the "kana" column.
-
 main :: IO ()
 main = do path :: Env <- head . lines <$> readFile "path"
           void . runInputTToGetIO $ path
