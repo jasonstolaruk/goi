@@ -40,7 +40,7 @@ searchCmd = (,) <$> goiFile <*> yonmojiFile >>= \(("goi.txt", ) *** ("yonmoji.tx
     setSearchHist searchHist'
   where
     sourceColor = fgRed
-    prefixColor = fgGreen
+    prefixColor = fgYellow
     kanjiColor  = bgBlue
     kanaColor   = bgGreen
     eitherColor = bgYellow
