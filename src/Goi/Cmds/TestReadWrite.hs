@@ -66,10 +66,10 @@ helper queryText questionFun answerFun readOrWrite tblName = logFile >>= \lf -> 
 ----------
 
 testReadCmd :: Stack ()
-testReadCmd = helper "SELECT id, kanji, kana, read_success, read_fail FROM (SELECT * FROM goi ORDER BY RANDOM()) ORDER BY read_success LIMIT 1" kanji kana "read" "goi"
+testReadCmd = helper "SELECT id, kanji, kana, read_success, read_fail FROM goi WHERE read_success = (SELECT MIN(read_success) FROM goi) ORDER BY RANDOM() LIMIT 1" kanji kana "read" "goi"
 
 testReadYonmojiCmd :: Stack ()
-testReadYonmojiCmd = helper "SELECT id, kanji, kana, read_success, read_fail FROM (SELECT * FROM yonmoji ORDER BY RANDOM()) ORDER BY read_success LIMIT 1" kanji kana "read" "yonmoji"
+testReadYonmojiCmd = helper "SELECT id, kanji, kana, read_success, read_fail FROM yonmoji WHERE read_success = (SELECT MIN(read_success) FROM yonmoji) ORDER BY RANDOM() LIMIT 1" kanji kana "read" "yonmoji"
 
 testReadRandomCmd :: Stack ()
 testReadRandomCmd = helper "SELECT id, kanji, kana, read_success, read_fail FROM goi ORDER BY RANDOM() LIMIT 1" kanji kana "read" "goi"
@@ -80,10 +80,10 @@ testReadYonmojiRandomCmd = helper "SELECT id, kanji, kana, read_success, read_fa
 ----------
 
 testWriteCmd :: Stack ()
-testWriteCmd = helper "SELECT id, kanji, kana, write_success, write_fail FROM (SELECT * FROM goi ORDER BY RANDOM()) ORDER BY write_success LIMIT 1" kana kanji "write" "goi"
+testWriteCmd = helper "SELECT id, kanji, kana, write_success, write_fail FROM goi WHERE write_success = (SELECT MIN(write_success) FROM goi) ORDER BY RANDOM() LIMIT 1" kana kanji "write" "goi"
 
 testWriteYonmojiCmd :: Stack ()
-testWriteYonmojiCmd = helper "SELECT id, kanji, kana, write_success, write_fail FROM (SELECT * FROM yonmoji ORDER BY RANDOM()) ORDER BY write_success LIMIT 1" kana kanji "write" "yonmoji"
+testWriteYonmojiCmd = helper "SELECT id, kanji, kana, write_success, write_fail FROM yonmoji WHERE write_success = (SELECT MIN(write_success) FROM yonmoji) ORDER BY RANDOM() LIMIT 1" kana kanji "write" "yonmoji"
 
 testWriteRandomCmd :: Stack ()
 testWriteRandomCmd = helper "SELECT id, kanji, kana, write_success, write_fail FROM goi ORDER BY RANDOM() LIMIT 1" kana kanji "write" "goi"
